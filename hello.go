@@ -7,17 +7,26 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"os"
-
 	"github.com/joho/godotenv"
 )
-
+type Resp struct {
+	URL string `json:"url"`
+	Event json.RawMessage `json:"event"`
+}
 func handler(w http.ResponseWriter, r *http.Request) {
 	type DiscordMessage struct {
 		Content string `json:"content"`
 	}
 	bodyBytes, err := io.ReadAll(r.Body)
-	rstring := string(bodyBytes)
+    var resp Resp
+	err = json.Unmarshal(bodyBytes, &resp)
+	if err != nil {
+		fmt.Println("JSON error:", err)
+		return
+	}
+	rurl := resp.URL
+	revent := resp.Event
+	rstring := string(revent)
 	message := DiscordMessage{
 		Content: rstring,
 	}
@@ -26,7 +35,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(err)
 		return
 	}
-	http.Post(os.Getenv("DISCORD_WEBHOOK_URL"), "application/json", bytes.NewBuffer(jsonData))
+	http.Post(rurl, "application/json", bytes.NewBuffer(jsonData))
 }
 
 func main() {
